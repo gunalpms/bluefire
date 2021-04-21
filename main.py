@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands
 import pytesseract
 from PIL import Image
+import PIL
+import glob
 import os
 import io
 import requests
@@ -33,7 +35,7 @@ async def ping(ctx):
 
 @client.command()
 async def transcribe(ctx, passed_lang = "eng"):
-    if ctx.message.attachments is None:
+    if not ctx.message.attachments:
         await ctx.send("Send an image to be transcribed.")
         
     else:  
@@ -53,9 +55,26 @@ async def transcribe(ctx, passed_lang = "eng"):
                     transcribed_text = pytesseract.image_to_string(Image.open(f"fileby{number}.jpg"), lang = passed_lang) 
                     await ctx.send(f"Transcribed text: \n {transcribed_text} \nNot what you wanted? --help transcribe for possible error reasons")
                     os.remove(f"fileby{number}.jpg")
+
+#RESOLUTION 
+@client.command()
+async def resolution(ctx):
+    if not ctx.message.attachments:
+        await ctx.send("Send an image to recieve the resolution")
+    else:
+        for attachment in ctx.message.attachments:
+            if any(attachment.filename.lower().endswith(image) for image in image_types):
+                number = int(ctx.message.author.id)
+                await ctx.message.attachments[0].save(f"resolution{number}.jpg")
+                im = Image.open(f"resolution{number}.jpg")
+                await ctx.send(f"The image dimensions are {im.size}")
+                im.close()
+                os.remove(f"resolution{number}.jpg")
+
+#HELP
 @client.command()
 async def help(ctx, cmd = None):
-    cmd_list = ["transcribe", "ping", None]
+    cmd_list = ["transcribe", "ping", "resolution", None]
     if cmd not in cmd_list:
         await ctx.send("That command doesn't exist, type --help for command list")
     else:
@@ -64,17 +83,27 @@ async def help(ctx, cmd = None):
             embed.add_field(name="Command list", value="More commands are coming soon", inline=True)
             embed.add_field(name="transcribe", value="extracts text from an image", inline=False)
             embed.add_field(name="ping", value="returns ping", inline=False)
+            embed.add_field(name="resolution", value = "gives resolution of a sent image")
             embed.set_footer(text = footer)
             await ctx.send(embed=embed)
         elif cmd == "transcribe":
             embed=discord.Embed(title="transcribe help", description="this command extracts text from any given image | default is latin alphabet", color=0x5ce1e6)
-            embed.add_field(name="Usage", value="--transcribe lang**", inline=True)
+            embed.add_field(name="Usage", value="--transcribe* lang**", inline=True)
             embed.add_field(name="Supported image types", value="png, jpg, jpeg ,gif", inline=True)
             embed.add_field(name="Supported languages", value="For supported languages, see official pytesseract documentation", inline=False)
             embed.set_footer(text="*required **optional | this command uses the pytesseract library")
             await ctx.send(embed=embed)
-
-
+        elif cmd == "resolution":
+            embed=discord.Embed(title="resolution help", color=0x5ce1e6)
+            embed.add_field(name="Usage", value="--resolution*", inline=False)
+            embed.add_field(name="Supported image types", value="png, jpg, jpeg")
+            embed.set_footer(text = "*required **optional")
+            await ctx.send(embed=embed)
+        
+        elif cmd == "ping":
+            embed=discord.Embed(title="ping help", color=0x5ce1e6)
+            embed.add_field(name="usage", value="--ping returns the ping in ms")
+            await ctx.send(embed=embed)
 
 
 
